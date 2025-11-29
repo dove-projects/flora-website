@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Reorder Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            background: #1a1a1a;
+            padding: 20px 0;
+            z-index: 100;
+            border-bottom: 1px solid #333;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        button {
+            background: #4a9eff;
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #3a8eef;
+        }
+
+        button.secondary {
+            background: #444;
+        }
+
+        button.secondary:hover {
+            background: #555;
+        }
+
+        .status {
+            padding: 8px 16px;
+            background: #2a2a2a;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .photo-item {
+            position: relative;
+            aspect-ratio: 3/4;
+            background: #2a2a2a;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: grab;
+            transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .photo-item:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+
+        .photo-item.dragging {
+            opacity: 0.4;
+            transform: scale(0.95);
+            cursor: grabbing;
+        }
+
+        .photo-item.drag-over {
+            transform: scale(1.08);
+            box-shadow: 0 0 0 4px #4a9eff, 0 8px 25px rgba(74, 158, 255, 0.4);
+        }
+
+        .photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+        }
+
+        .photo-number {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0,0,0,0.85);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        .photo-original {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(74, 158, 255, 0.95);
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            pointer-events: none;
+            display: none;
+        }
+
+        .photo-original.changed {
+            display: block;
+        }
+
+        .instructions {
+            background: #2a2a2a;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .instructions strong {
+            color: #4a9eff;
+        }
+
+        #output {
+            display: none;
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        #output.visible {
+            display: block;
+        }
+
+        .drag-ghost {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.9;
+            transform: rotate(3deg) scale(1.05);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .drag-ghost img {
+            width: 120px;
+            height: 160px;
+            object-fit: cover;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Photo Reorder Tool</h1>
+        <div class="instructions">
+            <strong>Click and drag</strong> photos to reorder them. When done, click <strong>Generate Rename Script</strong> to get the terminal commands.
+        </div>
+        <div class="controls">
+            <button onclick="generateScript()">Generate Rename Script</button>
+            <button class="secondary" onclick="resetOrder()">Reset to Original</button>
+            <span class="status" id="status">Click and drag photos to reorder</span>
+        </div>
+    </div>
+
+    <div class="gallery" id="gallery"></div>
+
+    <pre id="output"></pre>
+
+    <script>
+        const TOTAL_PHOTOS = 84;
+        let draggedItem = null;
+        let dragGhost = null;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        function init() {
+            const gallery = document.getElementById('gallery');
+
+            for (let i = 1; i <= TOTAL_PHOTOS; i++) {
+                const item = document.createElement('div');
+                item.className = 'photo-item';
+                item.dataset.original = i;
+                item.innerHTML = `
+                    <img src="media/${i}.png" alt="Photo ${i}" loading="lazy">
+                    <span class="photo-number">${i}</span>
+                    <span class="photo-original">was ${i}</span>
+                `;
+
+                // Mouse events
+                item.addEventListener('mousedown', handleMouseDown);
+
+                // Touch events
+                item.addEventListener('touchstart', handleTouchStart, { passive: false });
+
+                gallery.appendChild(item);
+            }
+
+            // Global mouse events
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+
+            // Global touch events
+            document.addEventListener('touchmove', handleTouchMove, { passive: false });
+            document.addEventListener('touchend', handleTouchEnd);
+        }
+
+        function handleMouseDown(e) {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            startDrag(this, e.clientX, e.clientY);
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            startDrag(this, touch.clientX, touch.clientY);
+        }
+
+        function startDrag(item, clientX, clientY) {
+            draggedItem = item;
+            const rect = item.getBoundingClientRect();
+            offsetX = clientX - rect.left;
+            offsetY = clientY - rect.top;
+
+            item.classList.add('dragging');
+
+            // Create ghost element
+            dragGhost = document.createElement('div');
+            dragGhost.className = 'drag-ghost';
+            dragGhost.innerHTML = `<img src="${item.querySelector('img').src}">`;
+            document.body.appendChild(dragGhost);
+
+            updateGhostPosition(clientX, clientY);
+        }
+
+        function handleMouseMove(e) {
+            if (!draggedItem) return;
+            e.preventDefault();
+            updateDrag(e.clientX, e.clientY);
+        }
+
+        function handleTouchMove(e) {
+            if (!draggedItem) return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            updateDrag(touch.clientX, touch.clientY);
+        }
+
+        function updateDrag(clientX, clientY) {
+            updateGhostPosition(clientX, clientY);
+
+            // Find element under cursor
+            if (dragGhost) dragGhost.style.display = 'none';
+            const elementBelow = document.elementFromPoint(clientX, clientY);
+            if (dragGhost) dragGhost.style.display = 'block';
+
+            // Clear all drag-over states
+            document.querySelectorAll('.photo-item.drag-over').forEach(el => {
+                el.classList.remove('drag-over');
+            });
+
+            // Find the photo-item
+            const targetItem = elementBelow?.closest('.photo-item');
+            if (targetItem && targetItem !== draggedItem) {
+                targetItem.classList.add('drag-over');
+            }
+        }
+
+        function updateGhostPosition(clientX, clientY) {
+            if (dragGhost) {
+                dragGhost.style.left = (clientX - 60) + 'px';
+                dragGhost.style.top = (clientY - 80) + 'px';
+            }
+        }
+
+        function handleMouseUp(e) {
+            if (!draggedItem) return;
+            endDrag(e.clientX, e.clientY);
+        }
+
+        function handleTouchEnd(e) {
+            if (!draggedItem) return;
+            const touch = e.changedTouches[0];
+            endDrag(touch.clientX, touch.clientY);
+        }
+
+        function endDrag(clientX, clientY) {
+            // Find drop target
+            if (dragGhost) dragGhost.style.display = 'none';
+            const elementBelow = document.elementFromPoint(clientX, clientY);
+            const targetItem = elementBelow?.closest('.photo-item');
+
+            if (targetItem && targetItem !== draggedItem) {
+                const gallery = document.getElementById('gallery');
+                const items = Array.from(gallery.children);
+                const draggedIndex = items.indexOf(draggedItem);
+                const targetIndex = items.indexOf(targetItem);
+
+                if (draggedIndex < targetIndex) {
+                    targetItem.parentNode.insertBefore(draggedItem, targetItem.nextSibling);
+                } else {
+                    targetItem.parentNode.insertBefore(draggedItem, targetItem);
+                }
+
+                updateNumbers();
+            }
+
+            // Cleanup
+            draggedItem.classList.remove('dragging');
+            document.querySelectorAll('.photo-item.drag-over').forEach(el => {
+                el.classList.remove('drag-over');
+            });
+
+            if (dragGhost) {
+                dragGhost.remove();
+                dragGhost = null;
+            }
+
+            draggedItem = null;
+        }
+
+        function updateNumbers() {
+            const items = document.querySelectorAll('.photo-item');
+            let changedCount = 0;
+
+            items.forEach((item, index) => {
+                const newNum = index + 1;
+                const originalNum = parseInt(item.dataset.original);
+                item.querySelector('.photo-number').textContent = newNum;
+
+                const originalLabel = item.querySelector('.photo-original');
+                if (newNum !== originalNum) {
+                    changedCount++;
+                    originalLabel.classList.add('changed');
+                } else {
+                    originalLabel.classList.remove('changed');
+                }
+            });
+
+            document.getElementById('status').textContent =
+                changedCount > 0 ? `${changedCount} photos reordered` : 'Click and drag photos to reorder';
+        }
+
+        function resetOrder() {
+            const gallery = document.getElementById('gallery');
+            const items = Array.from(gallery.children);
+
+            items.sort((a, b) => {
+                return parseInt(a.dataset.original) - parseInt(b.dataset.original);
+            });
+
+            items.forEach(item => gallery.appendChild(item));
+            updateNumbers();
+            document.getElementById('output').classList.remove('visible');
+        }
+
+        function generateScript() {
+            const items = document.querySelectorAll('.photo-item');
+            const newOrder = [];
+            let hasChanges = false;
+
+            items.forEach((item, index) => {
+                const newNum = index + 1;
+                const originalNum = parseInt(item.dataset.original);
+                newOrder.push({ from: originalNum, to: newNum });
+                if (newNum !== originalNum) hasChanges = true;
+            });
+
+            if (!hasChanges) {
+                alert('No changes to apply!');
+                return;
+            }
+
+            // Generate rename commands
+            let script = '# Run these commands in terminal:\n';
+            script += 'cd /Users/willfaust/Documents/flora-website/media\n\n';
+            script += '# Step 1: Rename all to temp files\n';
+
+            newOrder.forEach(item => {
+                script += `mv "${item.from}.png" "temp_${item.from}.png"\n`;
+            });
+
+            script += '\n# Step 2: Rename to final positions\n';
+
+            newOrder.forEach(item => {
+                script += `mv "temp_${item.from}.png" "${item.to}.png"\n`;
+            });
+
+            script += '\necho "Done! Photos reordered."';
+
+            const output = document.getElementById('output');
+            output.textContent = script;
+            output.classList.add('visible');
+
+            navigator.clipboard.writeText(script).then(() => {
+                document.getElementById('status').textContent = 'Script copied to clipboard!';
+            }).catch(() => {
+                document.getElementById('status').textContent = 'Script generated below (copy manually)';
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
