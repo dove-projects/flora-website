@@ -70,6 +70,23 @@ main {
     display: block;
 }
 
+.photo-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.photo-group img {
+    width: 100%;
+    height: auto;
+}
+
+.photo-title {
+    font-size: 14px;
+    color: #000;
+    margin-top: 10px;
+    text-align: left;
+}
+
 /* Tablet and up */
 @media (min-width: 768px) {
     header {
