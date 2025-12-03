@@ -71,6 +71,7 @@ main {
     max-width: 100%;
     height: auto;
     display: block;
+    opacity: 0;
 }
 
 .photo-group {
@@ -88,6 +89,7 @@ main {
     color: #000;
     margin-top: 10px;
     text-align: left;
+    opacity: 0;
 }
 
 /* Tablet and up */

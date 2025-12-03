@@ -2,41 +2,71 @@ document.addEventListener('DOMContentLoaded', function() {
     // Smooth scroll behavior
     document.documentElement.style.scrollBehavior = 'smooth';
 
-    // Fade in images as they load
-    const images = document.querySelectorAll('.gallery img');
+    // Handle photo groups and standalone images
+    const photoGroups = document.querySelectorAll('.photo-group');
+    const standaloneImages = document.querySelectorAll('.gallery > img');
 
-    images.forEach(img => {
-        img.style.opacity = '0';
-        img.style.transition = 'opacity 0.5s ease';
+    // Setup photo groups - wait for all images in group to load
+    photoGroups.forEach(group => {
+        const images = Array.from(group.querySelectorAll('img'));
+        const title = group.querySelector('.photo-title');
+        let shown = false;
 
-        if (img.complete) {
-            img.style.opacity = '1';
-        } else {
-            img.addEventListener('load', function() {
-                img.style.opacity = '1';
+        const showGroup = () => {
+            if (shown) return;
+            shown = true;
+
+            requestAnimationFrame(() => {
+                // Show all images and title together
+                images.forEach(img => {
+                    img.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                    img.style.opacity = '1';
+                    img.style.transform = 'translateY(0)';
+                });
+
+                if (title) {
+                    title.style.transition = 'opacity 0.5s ease';
+                    title.style.opacity = '1';
+                }
             });
-        }
+        };
+
+        // Check if all images are loaded
+        const checkAllLoaded = () => {
+            const allLoaded = images.every(img => img.complete && img.naturalHeight > 0);
+            if (allLoaded) {
+                showGroup();
+            }
+        };
+
+        images.forEach(img => {
+            img.addEventListener('load', checkAllLoaded);
+            img.addEventListener('error', checkAllLoaded);
+        });
+
+        // Initial check in case images are cached
+        checkAllLoaded();
     });
 
-    // Intersection Observer for fade-in animation on scroll
-    const observerOptions = {
-        root: null,
-        rootMargin: '0px',
-        threshold: 0.1
-    };
+    // Setup standalone images
+    standaloneImages.forEach(img => {
+        let shown = false;
 
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
+        const showImage = () => {
+            if (shown) return;
+            if (img.complete && img.naturalHeight > 0) {
+                shown = true;
+                requestAnimationFrame(() => {
+                    img.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                    img.style.opacity = '1';
+                    img.style.transform = 'translateY(0)';
+                });
             }
-        });
-    }, observerOptions);
+        };
 
-    images.forEach(img => {
-        img.style.transform = 'translateY(20px)';
-        observer.observe(img);
+        img.addEventListener('load', showImage);
+        img.addEventListener('error', showImage);
+        showImage();
     });
 
     // Desktop Lightbox functionality
