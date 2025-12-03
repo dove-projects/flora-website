@@ -142,9 +142,10 @@ function initLightbox() {
         // Setup images
         lightboxImageA.src = img.src;
         lightboxImageA.style.opacity = '1';
-        lightboxImageA.style.cursor = 'zoom-in';
+        lightboxImageA.classList.remove('zoomed');
         lightboxImageB.src = '';
         lightboxImageB.style.opacity = '0';
+        lightboxImageB.classList.remove('zoomed');
 
         // Set initial position (matching the clicked image)
         lightboxContent.style.position = 'fixed';
@@ -153,6 +154,9 @@ function initLightbox() {
         lightboxContent.style.width = rect.width + 'px';
         lightboxContent.style.height = rect.height + 'px';
         lightboxContent.style.transition = 'none';
+        lightboxContent.style.cursor = 'zoom-in';
+        lightboxImageA.style.cursor = 'zoom-in';
+        lightboxImageB.style.cursor = 'zoom-in';
 
         overlay.classList.add('active');
 
@@ -223,7 +227,11 @@ function initLightbox() {
         if (isZoomed) {
             // Zoom out - keep current transformOrigin, just animate scale
             isZoomed = false;
-            currentImage.style.cursor = 'zoom-in';
+            currentImage.classList.remove('zoomed');
+            currentImage.style.pointerEvents = 'auto';
+            lightboxContent.style.pointerEvents = 'auto';
+            overlay.style.cursor = '';
+            lightboxContent.style.cursor = '';
             lightboxContent.style.overflow = 'hidden';
             currentImage.style.transition = 'transform 0.3s ease';
             currentImage.style.transform = 'scale(1)';
@@ -235,7 +243,7 @@ function initLightbox() {
         } else {
             // Zoom in
             isZoomed = true;
-            currentImage.style.cursor = 'zoom-out';
+            currentImage.classList.add('zoomed');
             lightboxContent.style.overflow = 'hidden';
 
             // Calculate zoom position based on click
@@ -251,6 +259,12 @@ function initLightbox() {
             currentImage.offsetHeight;
             currentImage.style.transition = 'transform 0.3s ease';
             currentImage.style.transform = 'scale(2.5)';
+
+            // Set cursor and pointer-events immediately
+            overlay.style.cursor = 'zoom-out';
+            lightboxContent.style.cursor = 'zoom-out';
+            lightboxContent.style.pointerEvents = 'none';
+            currentImage.style.pointerEvents = 'none';
         }
     }
 
@@ -259,8 +273,12 @@ function initLightbox() {
 
         const currentImage = getActiveImage();
         const rect = lightboxContent.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width) * 100;
-        const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+        // Calculate position relative to lightboxContent, clamped to 0-100%
+        let x = ((e.clientX - rect.left) / rect.width) * 100;
+        let y = ((e.clientY - rect.top) / rect.height) * 100;
+        x = Math.max(0, Math.min(100, x));
+        y = Math.max(0, Math.min(100, y));
 
         currentImage.style.transition = 'transform-origin 0.1s ease';
         currentImage.style.transformOrigin = `${x}% ${y}%`;
@@ -270,10 +288,10 @@ function initLightbox() {
         isZoomed = false;
         lightboxImageA.style.transform = 'scale(1)';
         lightboxImageA.style.transformOrigin = 'center center';
-        lightboxImageA.style.cursor = 'zoom-in';
+        lightboxImageA.classList.remove('zoomed');
         lightboxImageB.style.transform = 'scale(1)';
         lightboxImageB.style.transformOrigin = 'center center';
-        lightboxImageB.style.cursor = 'zoom-in';
+        lightboxImageB.classList.remove('zoomed');
     }
 
     function scrollToCurrentImage(smooth = true) {
@@ -365,11 +383,22 @@ function initLightbox() {
         toggleZoom(e);
     });
 
-    lightboxContent.addEventListener('mousemove', handleMouseMove);
+    lightboxContent.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (isZoomed) {
+            toggleZoom(e);
+        }
+    });
+
+    overlay.addEventListener('mousemove', handleMouseMove);
 
     overlay.addEventListener('click', (e) => {
         if (e.target === overlay) {
-            closeLightbox();
+            if (isZoomed) {
+                toggleZoom(e);
+            } else {
+                closeLightbox();
+            }
         }
     });
 
