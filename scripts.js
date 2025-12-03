@@ -216,6 +216,10 @@ function initLightbox() {
             overlay.classList.remove('active', 'closing');
             lightboxOpen = false;
             isZoomed = false;
+            // Move lightboxContent off-screen so it doesn't block clicks on gallery images
+            lightboxContent.style.transition = 'none';
+            lightboxContent.style.top = '-9999px';
+            lightboxContent.style.left = '-9999px';
         }, 400);
     }
 
