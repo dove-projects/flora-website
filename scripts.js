@@ -154,11 +154,15 @@ function initLightbox() {
         lightboxContent.style.width = rect.width + 'px';
         lightboxContent.style.height = rect.height + 'px';
         lightboxContent.style.transition = 'none';
+        lightboxContent.style.opacity = '1';
         lightboxContent.style.cursor = 'zoom-in';
         lightboxImageA.style.cursor = 'zoom-in';
         lightboxImageB.style.cursor = 'zoom-in';
 
         overlay.classList.add('active');
+
+        // Reset close button opacity
+        closeBtn.style.opacity = '';
 
         // Animate to center
         requestAnimationFrame(() => {
@@ -200,6 +204,9 @@ function initLightbox() {
 
         resetZoom();
 
+        // Hide close button immediately
+        closeBtn.style.opacity = '0';
+
         // Get current image position (background should already be scrolled)
         const currentImg = galleryImages[currentIndex];
         const rect = currentImg.getBoundingClientRect();
@@ -212,6 +219,13 @@ function initLightbox() {
 
         overlay.classList.add('closing');
 
+        // After shrink animation, fade out the content
+        setTimeout(() => {
+            lightboxContent.style.transition = 'opacity 0.15s ease';
+            lightboxContent.style.opacity = '0';
+        }, 380);
+
+        // Then clean up
         setTimeout(() => {
             overlay.classList.remove('active', 'closing');
             lightboxOpen = false;
@@ -220,7 +234,7 @@ function initLightbox() {
             lightboxContent.style.transition = 'none';
             lightboxContent.style.top = '-9999px';
             lightboxContent.style.left = '-9999px';
-        }, 400);
+        }, 530);
     }
 
     function toggleZoom(e) {
