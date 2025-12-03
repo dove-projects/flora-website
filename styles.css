@@ -31,6 +31,9 @@ header {
 .logo img {
     height: 50px;
     width: auto;
+    user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: none;
 }
 
 nav {
@@ -111,9 +114,14 @@ main {
     }
 
     .gallery {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
+        display: block;
+        columns: 2;
+        column-gap: 20px;
+    }
+
+    .gallery > * {
+        break-inside: avoid;
+        margin-bottom: 20px;
     }
 
     .gallery img {
@@ -125,14 +133,18 @@ main {
 /* Desktop */
 @media (min-width: 1024px) {
     .gallery {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 30px;
+        columns: 3;
+        column-gap: 30px;
+    }
+
+    .gallery > * {
+        margin-bottom: 30px;
     }
 }
 
 /* Large desktop */
 @media (min-width: 1400px) {
     .gallery {
-        grid-template-columns: repeat(4, 1fr);
+        columns: 4;
     }
 }
