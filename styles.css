@@ -27,11 +27,11 @@ header {
     margin: 0 auto;
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
 }
 
 .logo img {
-    height: 50px;
+    height: 3.2vw;
     width: auto;
     user-select: none;
     -webkit-user-drag: none;
@@ -103,7 +103,7 @@ main {
     }
 
     .logo img {
-        height: 65px;
+        height: 25px;
     }
 
     nav {
