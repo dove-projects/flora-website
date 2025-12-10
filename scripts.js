@@ -204,6 +204,13 @@ function initLightbox() {
 
         resetZoom();
 
+        // Reset cursor and pointer-events from zoom state
+        overlay.style.cursor = '';
+        lightboxContent.style.cursor = '';
+        lightboxContent.style.pointerEvents = '';
+        lightboxImageA.style.pointerEvents = '';
+        lightboxImageB.style.pointerEvents = '';
+
         // Hide close button immediately
         closeBtn.style.opacity = '0';
 

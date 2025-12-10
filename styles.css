@@ -97,7 +97,7 @@ main {
 }
 
 /* Tablet and up */
-@media (min-width: 768px) {
+@media (min-width: 580px) {
     header {
         padding: 30px 40px;
     }
@@ -120,14 +120,13 @@ main {
     }
 
     .gallery {
-        display: block;
-        columns: 2;
-        column-gap: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
     }
 
     .gallery > * {
-        break-inside: avoid;
-        margin-bottom: 20px;
+        width: calc(50% - 10px);
     }
 
     .gallery img {
@@ -139,19 +138,18 @@ main {
 /* Desktop */
 @media (min-width: 1024px) {
     .gallery {
-        columns: 3;
-        column-gap: 30px;
+        gap: 30px;
     }
 
     .gallery > * {
-        margin-bottom: 30px;
+        width: calc(33.333% - 20px);
     }
 }
 
 /* Large desktop */
 @media (min-width: 1400px) {
-    .gallery {
-        columns: 4;
+    .gallery > * {
+        width: calc(25% - 22.5px);
     }
 }
 
@@ -213,11 +211,8 @@ main {
     right: 30px;
     width: 48px;
     height: 48px;
-    background: rgba(128, 128, 128, 0.2);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: transparent;
     border: none;
-    border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
