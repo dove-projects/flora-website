@@ -716,6 +716,14 @@ function initProductModal() {
     // Event listeners
     bookPreview.addEventListener('click', openProductModal);
 
+    const shopLink = document.getElementById('shopLink');
+    if (shopLink) {
+        shopLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            openProductModal();
+        });
+    }
+
     productClose.addEventListener('click', closeProductModal);
 
     productModal.addEventListener('click', (e) => {
