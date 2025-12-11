@@ -79,6 +79,91 @@ document.addEventListener('DOMContentLoaded', function() {
             initLightbox();
         }
     });
+
+    // Infinite scroll
+    const gallery = document.querySelector('.gallery');
+    const originalItems = Array.from(gallery.children);
+    let isLoadingMore = false;
+
+    function setupNewGroups(container) {
+        const newGroups = container.querySelectorAll('.photo-group:not([data-initialized])');
+        newGroups.forEach(group => {
+            group.setAttribute('data-initialized', 'true');
+            const images = Array.from(group.querySelectorAll('img'));
+            const title = group.querySelector('.photo-title');
+            let shown = false;
+
+            const showGroup = () => {
+                if (shown) return;
+                shown = true;
+                requestAnimationFrame(() => {
+                    images.forEach(img => {
+                        img.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                        img.style.opacity = '1';
+                        img.style.transform = 'translateY(0)';
+                    });
+                    if (title) {
+                        title.style.transition = 'opacity 0.5s ease';
+                        title.style.opacity = '1';
+                    }
+                });
+            };
+
+            const checkAllLoaded = () => {
+                const allLoaded = images.every(img => img.complete && img.naturalHeight > 0);
+                if (allLoaded) showGroup();
+            };
+
+            images.forEach(img => {
+                img.addEventListener('load', checkAllLoaded);
+                img.addEventListener('error', checkAllLoaded);
+            });
+            checkAllLoaded();
+        });
+    }
+
+    // Mark original items as initialized
+    originalItems.forEach(item => item.setAttribute('data-initialized', 'true'));
+
+    function loadMoreContent() {
+        if (isLoadingMore) return;
+        isLoadingMore = true;
+
+        originalItems.forEach(item => {
+            const clone = item.cloneNode(true);
+            clone.removeAttribute('data-initialized');
+            // Reset opacity for fade-in effect
+            clone.querySelectorAll('img').forEach(img => {
+                img.style.opacity = '0';
+                img.style.transform = '';
+            });
+            const title = clone.querySelector('.photo-title');
+            if (title) title.style.opacity = '0';
+            gallery.appendChild(clone);
+        });
+
+        setupNewGroups(gallery);
+
+        // Re-initialize lightbox to include new images
+        if (window.innerWidth >= 768) {
+            const existingOverlay = document.querySelector('.lightbox-overlay');
+            if (existingOverlay) existingOverlay.remove();
+            initLightbox();
+        }
+
+        isLoadingMore = false;
+    }
+
+    window.addEventListener('scroll', () => {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const scrollHeight = document.documentElement.scrollHeight;
+        const clientHeight = document.documentElement.clientHeight;
+
+        // Load more when near bottom (within 500px)
+        if (scrollTop + clientHeight >= scrollHeight - 500) {
+            loadMoreContent();
+        }
+    });
 });
 
 function initLightbox() {

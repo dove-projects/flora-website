@@ -144,10 +144,15 @@ main {
     .gallery > * {
         width: calc(33.333% - 20px);
     }
+
+    .gallery img {
+        width: 100%;
+        object-fit: cover;
+    }
 }
 
 /* Large desktop */
-@media (min-width: 1400px) {
+@media (min-width: 1800px) {
     .gallery > * {
         width: calc(25% - 22.5px);
     }
