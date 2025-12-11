@@ -90,6 +90,10 @@
             -webkit-user-select: none;
         }
 
+        .photo-item.animating {
+            transition: transform 0.3s cubic-bezier(0.2, 0, 0.2, 1);
+        }
+
         .photo-item:hover {
             transform: scale(1.02);
             box-shadow: 0 8px 25px rgba(0,0,0,0.4);
@@ -210,7 +214,7 @@
     <pre id="output"></pre>
 
     <script>
-        const TOTAL_PHOTOS = 84;
+        const TOTAL_PHOTOS = 85;
         let draggedItem = null;
         let dragGhost = null;
         let offsetX = 0;
@@ -224,7 +228,7 @@
                 item.className = 'photo-item';
                 item.dataset.original = i;
                 item.innerHTML = `
-                    <img src="media/${i}.png" alt="Photo ${i}" loading="lazy">
+                    <img src="media/${i}.webp" alt="Photo ${i}" loading="lazy">
                     <span class="photo-number">${i}</span>
                     <span class="photo-original">was ${i}</span>
                 `;
@@ -339,11 +343,48 @@
                 const draggedIndex = items.indexOf(draggedItem);
                 const targetIndex = items.indexOf(targetItem);
 
+                // FLIP Animation - Step 1: Record all positions BEFORE the move
+                const positions = new Map();
+                items.forEach(item => {
+                    const rect = item.getBoundingClientRect();
+                    positions.set(item, { x: rect.left, y: rect.top });
+                });
+
+                // Do the DOM reorder
                 if (draggedIndex < targetIndex) {
                     targetItem.parentNode.insertBefore(draggedItem, targetItem.nextSibling);
                 } else {
                     targetItem.parentNode.insertBefore(draggedItem, targetItem);
                 }
+
+                // FLIP Animation - Step 2: Get new positions and animate
+                const updatedItems = Array.from(gallery.children);
+                updatedItems.forEach(item => {
+                    const oldPos = positions.get(item);
+                    const newRect = item.getBoundingClientRect();
+                    const deltaX = oldPos.x - newRect.left;
+                    const deltaY = oldPos.y - newRect.top;
+
+                    if (deltaX !== 0 || deltaY !== 0) {
+                        // Set initial position (where it was) with no transition
+                        item.style.transition = 'none';
+                        item.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+
+                        // Force reflow
+                        item.offsetHeight;
+
+                        // Clear inline transition and animate to new position
+                        item.style.transition = 'transform 0.3s cubic-bezier(0.2, 0, 0.2, 1)';
+                        item.style.transform = 'translate(0, 0)';
+
+                        // Cleanup after animation
+                        item.addEventListener('transitionend', function handler() {
+                            item.style.transition = '';
+                            item.style.transform = '';
+                            item.removeEventListener('transitionend', handler);
+                        });
+                    }
+                });
 
                 updateNumbers();
             }
@@ -420,13 +461,13 @@
             script += '# Step 1: Rename all to temp files\n';
 
             newOrder.forEach(item => {
-                script += `mv "${item.from}.png" "temp_${item.from}.png"\n`;
+                script += `mv "${item.from}.webp" "temp_${item.from}.webp"\n`;
             });
 
             script += '\n# Step 2: Rename to final positions\n';
 
             newOrder.forEach(item => {
-                script += `mv "temp_${item.from}.png" "${item.to}.png"\n`;
+                script += `mv "temp_${item.from}.webp" "${item.to}.webp"\n`;
             });
 
             script += '\necho "Done! Photos reordered."';
