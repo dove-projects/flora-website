@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Infinite scroll
     const gallery = document.querySelector('.gallery');
-    const originalItems = Array.from(gallery.children);
+    const originalItems = Array.from(gallery.querySelectorAll('.photo-group'));
     let isLoadingMore = false;
 
     function setupNewGroups(container) {
@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initLightbox() {
-    const galleryImages = Array.from(document.querySelectorAll('.gallery img'));
+    const galleryImages = Array.from(document.querySelectorAll('.gallery .photo-group img'));
     let currentIndex = 0;
     let isZoomed = false;
     let lightboxOpen = false;
@@ -545,3 +545,236 @@ function initLightbox() {
         }
     });
 }
+
+// Product Modal functionality
+function initProductModal() {
+    const bookPreview = document.getElementById('bookPreview');
+    const productModal = document.getElementById('productModal');
+    const productClose = productModal.querySelector('.product-close');
+    const productImageA = productModal.querySelector('.product-image-a');
+    const productImageB = productModal.querySelector('.product-image-b');
+    const productGallery = productModal.querySelector('.product-gallery');
+    const productImageContainer = productModal.querySelector('.product-image-container');
+    const prevBtn = productModal.querySelector('.product-prev');
+    const nextBtn = productModal.querySelector('.product-next');
+    const qtyMinus = productModal.querySelector('.qty-minus');
+    const qtyPlus = productModal.querySelector('.qty-plus');
+    const qtyValue = productModal.querySelector('.qty-value');
+    const buyButton = document.getElementById('buyButton');
+
+    const bookImages = [
+        'media/book/1.webp',
+        'media/book/2.webp',
+        'media/book/3.webp',
+        'media/book/4.webp'
+    ];
+    let currentImageIndex = 0;
+    let quantity = 1;
+    let isZoomed = false;
+    let activeImage = 'a';
+    let isNavigating = false;
+    const baseCheckoutUrl = 'https://checkout.florajensen.com/cart/47579864105174:';
+
+    function getActiveImage() {
+        return activeImage === 'a' ? productImageA : productImageB;
+    }
+
+    function getInactiveImage() {
+        return activeImage === 'a' ? productImageB : productImageA;
+    }
+
+    function updateCheckoutUrl() {
+        buyButton.href = baseCheckoutUrl + quantity;
+    }
+
+    function resetZoom() {
+        isZoomed = false;
+        const currentImage = getActiveImage();
+        currentImage.style.transform = 'scale(1)';
+        currentImage.style.transformOrigin = 'center center';
+        productImageContainer.style.cursor = '';
+        productGallery.style.cursor = '';
+    }
+
+    function openProductModal() {
+        productModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        currentImageIndex = 0;
+        activeImage = 'a';
+        productImageA.src = bookImages[0];
+        productImageA.style.opacity = '1';
+        productImageB.style.opacity = '0';
+        resetZoom();
+    }
+
+    function closeProductModal() {
+        resetZoom();
+        productModal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    function showImage(index) {
+        if (isNavigating) return;
+
+        if (index < 0) index = bookImages.length - 1;
+        if (index >= bookImages.length) index = 0;
+
+        // Reset zoom if zoomed
+        if (isZoomed) {
+            resetZoom();
+        }
+
+        isNavigating = true;
+        currentImageIndex = index;
+
+        const currentImage = getActiveImage();
+        const nextImage = getInactiveImage();
+
+        // Preload the new image
+        nextImage.src = bookImages[currentImageIndex];
+
+        const doCrossfade = () => {
+            // Reset transitions and ensure starting states
+            currentImage.style.transition = 'none';
+            nextImage.style.transition = 'none';
+            nextImage.style.opacity = '0';
+
+            // Use requestAnimationFrame for iOS compatibility
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    // Set transitions
+                    currentImage.style.transition = 'opacity 0.35s ease';
+                    nextImage.style.transition = 'opacity 0.35s ease';
+
+                    // Crossfade
+                    currentImage.style.opacity = '0';
+                    nextImage.style.opacity = '1';
+
+                    // Swap active
+                    activeImage = activeImage === 'a' ? 'b' : 'a';
+
+                    setTimeout(() => {
+                        // Reset the now-hidden image for next use
+                        currentImage.style.transition = 'none';
+                        isNavigating = false;
+                    }, 350);
+                });
+            });
+        };
+
+        if (nextImage.complete && nextImage.naturalWidth > 0) {
+            doCrossfade();
+        } else {
+            nextImage.onload = doCrossfade;
+        }
+    }
+
+    function toggleZoom(e) {
+        // No zoom on touch devices
+        if (!window.matchMedia('(hover: hover)').matches) return;
+
+        const currentImage = getActiveImage();
+
+        if (isZoomed) {
+            // Zoom out
+            isZoomed = false;
+            currentImage.style.transition = 'transform 0.3s ease';
+            currentImage.style.transform = 'scale(1)';
+            productImageContainer.style.cursor = '';
+            productGallery.style.cursor = '';
+            setTimeout(() => {
+                currentImage.style.transformOrigin = 'center center';
+            }, 300);
+        } else {
+            // Zoom in
+            isZoomed = true;
+            const rect = currentImage.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+            currentImage.style.transition = 'none';
+            currentImage.style.transformOrigin = `${x}% ${y}%`;
+            currentImage.offsetHeight; // Force reflow
+            currentImage.style.transition = 'transform 0.3s ease';
+            currentImage.style.transform = 'scale(2.5)';
+            productImageContainer.style.cursor = 'zoom-out';
+            productGallery.style.cursor = 'zoom-out';
+        }
+    }
+
+    function handleMouseMove(e) {
+        if (!isZoomed) return;
+        const currentImage = getActiveImage();
+        const rect = currentImage.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+        currentImage.style.transition = 'transform-origin 0.1s ease';
+        currentImage.style.transformOrigin = `${Math.max(0, Math.min(100, x))}% ${Math.max(0, Math.min(100, y))}%`;
+    }
+
+    // Event listeners
+    bookPreview.addEventListener('click', openProductModal);
+
+    productClose.addEventListener('click', closeProductModal);
+
+    productModal.addEventListener('click', (e) => {
+        if (e.target === productModal) {
+            closeProductModal();
+        }
+    });
+
+    productImageA.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleZoom(e);
+    });
+
+    productImageB.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleZoom(e);
+    });
+
+    productGallery.addEventListener('mousemove', handleMouseMove);
+
+    prevBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showImage(currentImageIndex - 1);
+    });
+
+    nextBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showImage(currentImageIndex + 1);
+    });
+
+    qtyMinus.addEventListener('click', () => {
+        if (quantity > 1) {
+            quantity--;
+            qtyValue.textContent = quantity;
+            updateCheckoutUrl();
+        }
+    });
+
+    qtyPlus.addEventListener('click', () => {
+        if (quantity < 50) {
+            quantity++;
+            qtyValue.textContent = quantity;
+            updateCheckoutUrl();
+        }
+    });
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        if (!productModal.classList.contains('active')) return;
+
+        if (e.key === 'Escape') {
+            closeProductModal();
+        } else if (e.key === 'ArrowLeft') {
+            showImage(currentImageIndex - 1);
+        } else if (e.key === 'ArrowRight') {
+            showImage(currentImageIndex + 1);
+        }
+    });
+}
+
+// Initialize product modal when DOM is ready
+document.addEventListener('DOMContentLoaded', initProductModal);

@@ -29,7 +29,6 @@
                 <img src="media/signature.svg" alt="Flora Jensen">
             </div>
             <nav>
-                <a href="https://checkout.florajensen.com/cart/47579864105174:1">Shop</a>
                 <a href="mailto:florajanejensen@gmail.com">Contact</a>
                 <a href="https://instagram.com/thebabyyjane" target="_blank">@thebabyyjane</a>
             </nav>
@@ -38,6 +37,10 @@
 
     <main>
         <div class="gallery">
+            <div class="book-preview" id="bookPreview">
+                <img src="media/book/1.webp" alt="Babyjane Vol. 1">
+                <p class="book-title">Babyjane Vol. 1</p>
+            </div>
             <div class="photo-group">
                 <img src="media/1.webp" alt="Photo" loading="lazy">
                 <img src="media/2.webp" alt="Photo" loading="lazy">
@@ -266,6 +269,43 @@
             </div>
         </div>
     </main>
+
+    <!-- Book Product Modal -->
+    <div class="product-modal" id="productModal">
+        <button class="product-close" aria-label="Back to home">
+            Back to home
+        </button>
+        <div class="product-content">
+            <div class="product-gallery">
+                <button class="product-nav product-prev" aria-label="Previous">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <div class="product-image-container">
+                    <img class="product-image product-image-a" src="media/book/1.webp" alt="Babyjane Vol. 1">
+                    <img class="product-image product-image-b" src="" alt="Babyjane Vol. 1">
+                </div>
+                <button class="product-nav product-next" aria-label="Next">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+            </div>
+            <div class="product-info">
+                <h1 class="product-name">Babyjane Vol. 1</h1>
+                <p class="product-price">$28.00</p>
+                <p class="product-shipping">Shipping calculated at checkout</p>
+                <p class="product-description">Babyjane Vol. 1 by Flora Jane Jensen marks her debut release. This portrait-style zine features twenty-four girls from Los Angeles and New York, capturing an intimate blend of vulnerability and girlhood through its imagery.</p>
+                <div class="product-quantity">
+                    <button class="qty-btn qty-minus" aria-label="Decrease quantity">−</button>
+                    <span class="qty-value">1</span>
+                    <button class="qty-btn qty-plus" aria-label="Increase quantity">+</button>
+                </div>
+                <a class="product-buy" href="https://checkout.florajensen.com/cart/47579864105174:1" id="buyButton">Order Now</a>
+            </div>
+        </div>
+    </div>
 
     <script src="scripts.js"></script>
 </body>
