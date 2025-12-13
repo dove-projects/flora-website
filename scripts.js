@@ -603,7 +603,9 @@ function initProductModal() {
         activeImage = 'a';
         productImageA.src = bookImages[0];
         productImageA.style.opacity = '1';
+        productImageA.style.pointerEvents = 'auto';
         productImageB.style.opacity = '0';
+        productImageB.style.pointerEvents = 'none';
         resetZoom();
     }
 
@@ -648,7 +650,9 @@ function initProductModal() {
 
                     // Crossfade
                     currentImage.style.opacity = '0';
+                    currentImage.style.pointerEvents = 'none';
                     nextImage.style.opacity = '1';
+                    nextImage.style.pointerEvents = 'auto';
 
                     // Swap active
                     activeImage = activeImage === 'a' ? 'b' : 'a';
@@ -662,7 +666,10 @@ function initProductModal() {
             });
         };
 
-        if (nextImage.complete && nextImage.naturalWidth > 0) {
+        // Clear any previous onload handler
+        nextImage.onload = null;
+
+        if (nextImage.complete && nextImage.naturalWidth > 0 && nextImage.src.includes(bookImages[currentImageIndex])) {
             doCrossfade();
         } else {
             nextImage.onload = doCrossfade;
