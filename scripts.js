@@ -573,7 +573,18 @@ function initProductModal() {
     let isZoomed = false;
     let activeImage = 'a';
     let isNavigating = false;
+    let preloadedImages = [];
     const baseCheckoutUrl = 'https://checkout.florajensen.com/cart/47579864105174:';
+
+    // Preload all book images
+    function preloadImages() {
+        preloadedImages = bookImages.map(src => {
+            const img = new Image();
+            img.src = src;
+            return img;
+        });
+    }
+    preloadImages();
 
     function getActiveImage() {
         return activeImage === 'a' ? productImageA : productImageB;
@@ -616,10 +627,12 @@ function initProductModal() {
     }
 
     function showImage(index) {
-        if (isNavigating) return;
-
+        // Allow interrupting previous navigation for responsive feel
         if (index < 0) index = bookImages.length - 1;
         if (index >= bookImages.length) index = 0;
+
+        // Don't navigate to same image
+        if (index === currentImageIndex && !isNavigating) return;
 
         // Reset zoom if zoomed
         if (isZoomed) {
@@ -632,48 +645,33 @@ function initProductModal() {
         const currentImage = getActiveImage();
         const nextImage = getInactiveImage();
 
-        // Preload the new image
+        // Set image source (already preloaded)
         nextImage.src = bookImages[currentImageIndex];
 
-        const doCrossfade = () => {
-            // Reset transitions and ensure starting states
-            currentImage.style.transition = 'none';
-            nextImage.style.transition = 'none';
-            nextImage.style.opacity = '0';
+        // Prepare next image
+        nextImage.style.transition = 'none';
+        nextImage.style.opacity = '0';
+        nextImage.style.pointerEvents = 'none';
 
-            // Use requestAnimationFrame for iOS compatibility
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    // Set transitions
-                    currentImage.style.transition = 'opacity 0.35s ease';
-                    nextImage.style.transition = 'opacity 0.35s ease';
+        // Force layout
+        nextImage.offsetHeight;
 
-                    // Crossfade
-                    currentImage.style.opacity = '0';
-                    currentImage.style.pointerEvents = 'none';
-                    nextImage.style.opacity = '1';
-                    nextImage.style.pointerEvents = 'auto';
+        // Start crossfade
+        currentImage.style.transition = 'opacity 0.25s ease';
+        nextImage.style.transition = 'opacity 0.25s ease';
 
-                    // Swap active
-                    activeImage = activeImage === 'a' ? 'b' : 'a';
+        currentImage.style.opacity = '0';
+        currentImage.style.pointerEvents = 'none';
+        nextImage.style.opacity = '1';
+        nextImage.style.pointerEvents = 'auto';
 
-                    setTimeout(() => {
-                        // Reset the now-hidden image for next use
-                        currentImage.style.transition = 'none';
-                        isNavigating = false;
-                    }, 350);
-                });
-            });
-        };
+        // Swap active
+        activeImage = activeImage === 'a' ? 'b' : 'a';
 
-        // Clear any previous onload handler
-        nextImage.onload = null;
-
-        if (nextImage.complete && nextImage.naturalWidth > 0 && nextImage.src.includes(bookImages[currentImageIndex])) {
-            doCrossfade();
-        } else {
-            nextImage.onload = doCrossfade;
-        }
+        // Reset navigation lock after transition
+        setTimeout(() => {
+            isNavigating = false;
+        }, 250);
     }
 
     function toggleZoom(e) {
